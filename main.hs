@@ -113,10 +113,13 @@ renderClusters clusters =
   layout1ToRenderable layout
   where
     point_plots = [plot_points_style ^= filledCircles 5 (opaque red) $
-                   plot_points_values ^= ((center c):(elements c)) $
+                   plot_points_values ^= ((Cluster.center c):(Cluster.elements c)) $
                    defaultPlotPoints | c <- clusters]
     clusters_plot = area_spots_fillcolour ^= (withOpacity blue 0.5) $
                     area_spots_max_radius ^= 5^2 $
-                    area_spots_values ^= [(fst (center c), snd (center c), threshold c) | c <- clusters] $ 
+                    area_spots_values ^= [(fst (Cluster.center c),
+                                           snd (Cluster.center c),
+                                           length (Cluster.elements c)) | c <- clusters] $ 
                     defaultAreaSpots
-    layout = layout1_plots ^= (Left (toPlot clusters_plot)):(map (Left . toPlot) point_plots) $ defaultLayout1
+    layout = layout1_plots ^= (Left (toPlot clusters_plot)):
+                               (map (Left . toPlot) point_plots) $ defaultLayout1
