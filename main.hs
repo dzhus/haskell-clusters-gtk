@@ -24,6 +24,8 @@ getLines = liftM lines . readFile
 
 readPoint s = read s::Cluster.Point
 
+coordSignificantDigits = 3
+
 getPointsFromFile :: Maybe FilePath -> IO (Maybe [Cluster.Point])
 getPointsFromFile Nothing = do return Nothing
 getPointsFromFile (Just filename) =
@@ -104,7 +106,10 @@ main =
                           return ())
      onButtonPress canvas $ \(GE.Button{GE.eventX=x,GE.eventY=y}) -> do
          (Just pickf) <- readIORef pickfv
-         addPoint (truncatePoint (pickToPoint (pickf (Point x y))) 3) pointBuffer
+         let
+           pick = (pickToPoint (pickf (Point x y)))
+           in
+           addPoint (truncatePoint pick coordSignificantDigits) pointBuffer
          return True
      mainGUI
 
