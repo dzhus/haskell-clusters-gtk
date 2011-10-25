@@ -104,7 +104,8 @@ main =
                           let clusters = (Cluster.clusterize (fromJust points) clusterSize) in
                               Main.updateCanvas (renderClusters clusters) canvas pickfv
                           return ())
-     onButtonPress canvas $ \(GE.Button{GE.eventX=x,GE.eventY=y}) -> do
+
+     onButtonPress canvas $ \(GE.Button{GE.eventX = x, GE.eventY = y}) -> do
          (Just pickf) <- readIORef pickfv
          let
            pick = (pickToPoint (pickf (Point x y)))
