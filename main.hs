@@ -44,6 +44,7 @@ main =
      canvas <- builderGetObject builder castToDrawingArea "canvas"
      button <- builderGetObject builder castToButton "go"
      textview <- builderGetObject builder castToTextView "textview"
+     size <- builderGetObject builder castToAdjustment "size"
      
      widgetShowAll window
 
@@ -53,7 +54,8 @@ main =
      onDestroy window mainQuit
      onClicked button (do buf <- textViewGetBuffer textview
                           points <- getPointsFromBuffer buf
-                          let clusters = (clusterize (fromJust points) 5.0) in
+                          clusterSize <- adjustmentGetValue size
+                          let clusters = (clusterize (fromJust points) clusterSize) in
                               updateCanvas (toRenderable (plotClusters clusters)) canvas
                           return ())
      mainGUI
