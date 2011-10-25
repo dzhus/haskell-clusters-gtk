@@ -38,6 +38,32 @@ getPointsFromBuffer buf =
           return (Just (map readPoint (filter (/= "") (lines text))))
           else return Nothing
 
+-- Reduce x to n significant digits after point
+truncateSignificant :: Double -> Int -> Double
+truncateSignificant x n =
+  let
+    t = fromIntegral (truncate (x * 10^n))
+  in
+    t / 10^n
+
+-- Reduce point coordinates to n significant digits after point
+truncatePoint :: Maybe Cluster.Point -> Int -> Maybe Cluster.Point
+truncatePoint Nothing _ = Nothing
+truncatePoint (Just p) n = Just (truncateSignificant (fst p) n,
+                                 truncateSignificant (snd p) n)
+
+-- Add point to list of points in a TextBuffer
+addPoint :: Maybe Cluster.Point -> TextBuffer -> IO ()
+addPoint Nothing buf = return ()
+addPoint (Just p) buf =
+  do end <- textBufferGetEndIter buf
+     textBufferInsert buf end ("\n"++(show p))
+
+-- Format result of PickFn call to Cluster.Point
+pickToPoint :: (Maybe PickType) -> (Maybe Cluster.Point)
+pickToPoint Nothing = Nothing
+pickToPoint (Just (L1P_PlotArea x y z)) = Just (x, y)
+
 -- Local version of updateCanvas which update PickFn reference
 updateCanvas :: Renderable a -> DrawingArea -> IORef (Maybe (PickFn a)) -> IO Bool
 updateCanvas chart canvas pickfv = do
@@ -58,6 +84,7 @@ main =
      canvas <- builderGetObject builder castToDrawingArea "canvas"
      button <- builderGetObject builder castToButton "go"
      textview <- builderGetObject builder castToTextView "textview"
+     pointBuffer <- textViewGetBuffer textview
      size <- builderGetObject builder castToAdjustment "size"
 
      -- Pick function reference
@@ -70,16 +97,14 @@ main =
      widgetModifyBg canvas StateNormal (Color 65535 65535 65535)
 
      onDestroy window mainQuit
-     onClicked button (do buf <- textViewGetBuffer textview
-                          points <- getPointsFromBuffer buf
+     onClicked button (do points <- getPointsFromBuffer pointBuffer
                           clusterSize <- adjustmentGetValue size
-                          let clusters = (clusterize (fromJust points) clusterSize) in
+                          let clusters = (Cluster.clusterize (fromJust points) clusterSize) in
                               Main.updateCanvas (renderClusters clusters) canvas pickfv
                           return ())
      onButtonPress canvas $ \(GE.Button{GE.eventX=x,GE.eventY=y}) -> do
-         print (x,y)
          (Just pickf) <- readIORef pickfv
-         print (pickf (Point x y))
+         addPoint (truncatePoint (pickToPoint (pickf (Point x y))) 3) pointBuffer
          return True
      mainGUI
 
