@@ -21,7 +21,7 @@ import Cluster
 type PickType = Layout1Pick Double Double
 
 clusterColors = cycle [red, green, blue, orange, steelblue,
-                       darkgreen, darkorchid, darkkhaki,
+                       teal, darkorchid, darkkhaki,
                        darkred, darkturquoise, brown, lightsteelblue,
                        hotpink, yellowgreen]
 
