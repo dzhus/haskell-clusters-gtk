@@ -222,7 +222,7 @@
             </child>
             <child>
               <object class="GtkButton" id="go">
-                <property name="label">gtk-apply</property>
+                <property name="label">gtk-execute</property>
                 <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
