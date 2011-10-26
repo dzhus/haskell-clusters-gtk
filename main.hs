@@ -32,13 +32,13 @@ getPointsFromFile (Just filename) =
   do lines <- getLines filename
      return (Just (map readPoint lines))
 
-getPointsFromBuffer :: TextBuffer -> IO (Maybe [Cluster.Point])
+getPointsFromBuffer :: TextBuffer -> IO [Cluster.Point]
 getPointsFromBuffer buf =
   do bounds <- textBufferGetBounds buf
      text <- textBufferGetText buf (fst bounds) (snd bounds) True
      if text /= "" then
-          return (Just (map readPoint (filter (/= "") (lines text))))
-          else return Nothing
+          return (map readPoint (filter (/= "") $ lines text))
+          else return []
 
 -- Reduce x to n significant digits after point
 truncateSignificant :: Double -> Int -> Double
@@ -76,6 +76,13 @@ updateCanvas chart canvas pickfv = do
      writeIORef pickfv (Just pickf)
      return True
 
+replotPoints pointBuffer adjustment canvas pickfv = do
+     points <- getPointsFromBuffer pointBuffer
+     clusterSize <- adjustmentGetValue adjustment
+     let clusters = (Cluster.clusterize points clusterSize) in
+       Main.updateCanvas (renderClusters clusters) canvas pickfv
+     return True
+
 main :: IO ()
 main = 
   do initGUI
@@ -98,20 +105,23 @@ main =
      drawin <- widgetGetDrawWindow canvas
      widgetModifyBg canvas StateNormal (Color 65535 65535 65535)
 
-     onDestroy window mainQuit
-     onClicked button (do points <- getPointsFromBuffer pointBuffer
-                          clusterSize <- adjustmentGetValue size
-                          let clusters = (Cluster.clusterize (fromJust points) clusterSize) in
-                              Main.updateCanvas (renderClusters clusters) canvas pickfv
-                          return ())
+     -- Event handlers
+     let
+       replotActions = (replotPoints pointBuffer size canvas pickfv)
+       in do
+        onExpose canvas $ const replotActions
+        onClicked button $ sequence_ [replotActions]
 
-     onButtonPress canvas $ \(GE.Button{GE.eventX = x, GE.eventY = y}) -> do
-         (Just pickf) <- readIORef pickfv
-         let
-           pick = (pickToPoint (pickf (Point x y)))
-           in
-           addPoint (truncatePoint pick coordSignificantDigits) pointBuffer
-         return True
+        onDestroy window mainQuit
+
+        onButtonPress canvas $ \(GE.Button{GE.eventX = x, GE.eventY = y}) -> do
+           (Just pickf) <- readIORef pickfv
+           let
+             pick = (pickToPoint (pickf (Point x y)))
+             in do
+              addPoint (truncatePoint pick coordSignificantDigits) pointBuffer
+              replotActions
+
      mainGUI
 
 renderClusters :: [Cluster.Cluster] -> Renderable PickType
