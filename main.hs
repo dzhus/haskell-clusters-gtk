@@ -20,6 +20,11 @@ import Cluster
 
 type PickType = Layout1Pick Double Double
 
+clusterColors = cycle [red, green, blue, orange, steelblue,
+                       darkgreen, darkorchid, darkkhaki,
+                       darkred, darkturquoise, brown, lightsteelblue,
+                       hotpink, yellowgreen]
+
 getLines = liftM lines . readFile
 
 readPoint s = read s::Cluster.Point
@@ -131,9 +136,11 @@ renderClusters clusters =
   where
     -- Hidden plot to ensure visibility
     zero_plot = PlotHidden{plot_hidden_x_values_ = [-10, 10], plot_hidden_y_values_ = [-10, 10]}
-    point_plots = [plot_points_style ^= filledCircles 5 (opaque red) $
-                   plot_points_values ^= ((Cluster.center c):(Cluster.elements c)) $
-                   defaultPlotPoints | c <- clusters]
+    point_plots = map (\(c, color) ->
+                         plot_points_style ^= filledCircles 5 (opaque color) $
+                         plot_points_values ^= ((Cluster.center c):(Cluster.elements c)) $
+                         defaultPlotPoints)
+                      (zip clusters clusterColors)
     clusters_plot = area_spots_fillcolour ^= (withOpacity blue 0.5) $
                     area_spots_max_radius ^= 5^2 $
                     area_spots_values ^= [(fst (Cluster.center c),
