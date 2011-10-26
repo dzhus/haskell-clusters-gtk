@@ -114,6 +114,7 @@ main =
 
         onDestroy window mainQuit
 
+        -- Add new point when clicking canvas
         onButtonPress canvas $ \(GE.Button{GE.eventX = x, GE.eventY = y}) -> do
            (Just pickf) <- readIORef pickfv
            let
@@ -128,6 +129,8 @@ renderClusters :: [Cluster.Cluster] -> Renderable PickType
 renderClusters clusters =
   layout1ToRenderable layout
   where
+    -- Hidden plot to ensure visibility
+    zero_plot = PlotHidden{plot_hidden_x_values_ = [-10, 10], plot_hidden_y_values_ = [-10, 10]}
     point_plots = [plot_points_style ^= filledCircles 5 (opaque red) $
                    plot_points_values ^= ((Cluster.center c):(Cluster.elements c)) $
                    defaultPlotPoints | c <- clusters]
@@ -137,5 +140,7 @@ renderClusters clusters =
                                            snd (Cluster.center c),
                                            length (Cluster.elements c)) | c <- clusters] $ 
                     defaultAreaSpots
-    layout = layout1_plots ^= (Left (toPlot clusters_plot)):
-                               (map (Left . toPlot) point_plots) $ defaultLayout1
+    layout = layout1_plots ^= (Left (toPlot zero_plot)):
+                              (Left (toPlot clusters_plot)):
+                              (map (Left . toPlot) point_plots)
+                              $ defaultLayout1
