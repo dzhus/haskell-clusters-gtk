@@ -45,6 +45,11 @@ getPointsFromBuffer buf =
           return (map readPoint (filter (/= "") $ lines text))
           else return []
 
+clearBuffer :: TextBuffer -> IO ()
+clearBuffer buf =
+  do textBufferSetText buf ""
+     return ()
+
 -- Reduce x to n significant digits after point
 truncateSignificant :: Double -> Int -> Double
 truncateSignificant x n =
@@ -97,6 +102,7 @@ main =
      window <- builderGetObject builder castToWindow "window"
      canvas <- builderGetObject builder castToDrawingArea "canvas"
      button <- builderGetObject builder castToButton "go"
+     clearButton <- builderGetObject builder castToButton "clear"
      textview <- builderGetObject builder castToTextView "textview"
      pointBuffer <- textViewGetBuffer textview
      size <- builderGetObject builder castToAdjustment "size"
@@ -117,6 +123,8 @@ main =
         onExpose canvas $ const replotActions
         onClicked button $ sequence_ [replotActions]
 
+        onClicked clearButton $ (clearBuffer pointBuffer)
+        
         onDestroy window mainQuit
 
         -- Add new point when clicking canvas
