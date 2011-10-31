@@ -4,6 +4,7 @@ module Cluster
 import qualified Data.Set as Set
 
 type Point = (Double, Double)
+
 data Cluster = Cluster
                {
                  center :: Point,

@@ -20,6 +20,8 @@ import Cluster
 
 type PickType = Layout1Pick Double Double
 
+type ClusteringMethod = [Cluster.Point] -> Double -> [Cluster]
+
 clusterColors = cycle [red, green, blue, orange, steelblue,
                        teal, darkorchid, darkkhaki,
                        darkred, darkturquoise, brown, lightsteelblue,
@@ -45,6 +47,16 @@ getPointsFromBuffer buf =
           return (map readPoint (filter (/= "") $ lines text))
           else return []
 
+-- given a group of "mode-mindist", "mode-kmeans" return a clustering
+-- method to use
+getModeByRadioGroup :: [RadioButton] -> IO (ClusteringMethod)
+getModeByRadioGroup rbs =
+  do status <- (toggleButtonGetActive $ head rbs)
+     if status then
+       return (\ps t -> Cluster.clusterizeMean ps t 100)
+       else
+       return (\ps t -> Cluster.clusterize ps t)
+          
 clearBuffer :: TextBuffer -> IO ()
 clearBuffer buf =
   do textBufferSetText buf ""
@@ -86,10 +98,11 @@ updateCanvas chart canvas pickfv = do
      writeIORef pickfv (Just pickf)
      return True
 
-replotPoints pointBuffer adjustment canvas pickfv = do
+replotPoints pointBuffer adjustment canvas pickfv rbs= do
      points <- getPointsFromBuffer pointBuffer
      clusterSize <- adjustmentGetValue adjustment
-     let clusters = (Cluster.clusterize points clusterSize) in
+     method <- getModeByRadioGroup rbs
+     let clusters = (method points clusterSize) in
        Main.updateCanvas (renderClusters clusters) canvas pickfv
      return True
 
@@ -106,6 +119,8 @@ main =
      textview <- builderGetObject builder castToTextView "textview"
      pointBuffer <- textViewGetBuffer textview
      size <- builderGetObject builder castToAdjustment "size"
+     modeMindist <- builderGetObject builder castToRadioButton "mode-mindist"
+     modeButtons <- radioButtonGetGroup modeMindist
 
      -- Pick function reference
      pickfv <- newIORef Nothing
@@ -118,7 +133,7 @@ main =
 
      -- Event handlers
      let
-       replotActions = (replotPoints pointBuffer size canvas pickfv)
+       replotActions = (replotPoints pointBuffer size canvas pickfv modeButtons)
        in do
         onExpose canvas $ const replotActions
         onClicked button $ sequence_ [replotActions]
