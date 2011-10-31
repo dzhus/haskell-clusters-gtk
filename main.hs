@@ -146,7 +146,7 @@ renderClusters clusters =
     zero_plot = PlotHidden{plot_hidden_x_values_ = [-10, 10], plot_hidden_y_values_ = [-10, 10]}
     point_plots = map (\(c, color) ->
                          plot_points_style ^= filledCircles 5 (opaque color) $
-                         plot_points_values ^= ((Cluster.center c):(Cluster.elements c)) $
+                         plot_points_values ^= (Cluster.elements c) $
                          defaultPlotPoints)
                       (zip clusters clusterColors)
     clusters_plot = area_spots_fillcolour ^= (withOpacity blue 0.5) $

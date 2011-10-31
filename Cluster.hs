@@ -36,7 +36,7 @@ classify point clusters threshold =
     in
       if clusterId == -1 then
       -- Add new cluster around this point
-          (newCluster point threshold):clusters
+          (addToCluster (newCluster point threshold) point):clusters
       else
       -- Add point to existing cluster
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
@@ -49,7 +49,3 @@ clusterize points threshold =
         clusterize1 [] clusters = clusters
     in
       clusterize1 points []
-
-
-
-           
