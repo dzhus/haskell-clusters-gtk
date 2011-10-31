@@ -56,13 +56,12 @@ classify point clusters threshold =
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
 
 -- Minimum distance clustering
+clusterize1 :: [Point] -> [Cluster] -> Double -> [Cluster]
+clusterize1 (p:points) clusters threshold = clusterize1 points (classify p clusters threshold) threshold
+clusterize1 [] clusters threshold = clusters
+
 clusterize :: [Point] -> Double -> [Cluster]
-clusterize points threshold =
-    let
-        clusterize1 (p:points) clusters = clusterize1 points (classify p clusters threshold)
-        clusterize1 [] clusters = clusters
-    in
-      clusterize1 points []
+clusterize points threshold = clusterize1 points [] threshold
 
 -- Make a new cluster with the same elements and threshold but new
 -- center is the median point for elements
@@ -81,13 +80,17 @@ clusterizeMean points threshold maxTries =
     let
         clusterizeMean1 points clusters i =
             let
-                newClusters = map recenter clusters
+                newCenters = map center (map recenter clusters)
+                oldCenters = map center clusters
+                -- newClusters with only centers
+                newClusters = map (\c -> Cluster c [] threshold) newCenters
             in
                 -- If recentered clusters are the same as on previous
                 -- or maximum step reached, give current clustering
-                if (Set.fromList newClusters == Set.fromList clusters) || (i == 0) then
+                if (Set.fromList newCenters == Set.fromList oldCenters)
+                   || (i == 0) then
                    clusters
                 else
-                   clusterizeMean1 points newClusters (i - 1)
+                   clusterizeMean1 points (clusterize1 points newClusters threshold) (i - 1)
     in
         clusterizeMean1 points (clusterize points threshold) maxTries
