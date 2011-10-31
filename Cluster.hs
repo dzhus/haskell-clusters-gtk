@@ -1,6 +1,8 @@
 module Cluster
     where
 
+import qualified Data.Set as Set
+
 type Point = (Double, Double)
 data Cluster = Cluster
                {
@@ -11,6 +13,19 @@ data Cluster = Cluster
 
 instance Show Cluster where
          show c = show (elements c) ++ " @ " ++ show (center c)
+
+instance Eq Cluster where
+         (Cluster c1 e1 t1) == (Cluster c2 e2 t2) = 
+                  (Set.fromList e1) == (Set.fromList e2) &&
+                  c1 == c2 && 
+                  t1 == t2
+
+instance Ord Cluster where
+         compare (Cluster c1 e1 t1) (Cluster c2 e2 t2)
+                 -- If element sets are equal, then compare centers and thresholds
+                 | (Set.fromList e1) == (Set.fromList e2) =
+                   compare (compare c1 c2) (compare t2 t1)
+                 | otherwise = compare e1 e2
 
 -- replaceIdx l i e changes i-th element in l to e. i is 1-based.
 -- replace is a lie.
@@ -40,7 +55,7 @@ classify point clusters threshold =
       -- Add point to existing cluster
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
 
--- Minimum distance clusterization
+-- Minimum distance clustering
 clusterize :: [Point] -> Double -> [Cluster]
 clusterize points threshold =
     let
@@ -49,3 +64,30 @@ clusterize points threshold =
     in
       clusterize1 points []
 
+-- Make a new cluster with the same elements and threshold but new
+-- center is the median point for elements
+recenter :: Cluster -> Cluster
+recenter cluster =
+    let
+        coordlists = unzip (elements cluster)
+        n = length (fst coordlists)
+        cx = (sum $ fst coordlists) / (fromIntegral n)
+        cy = (sum $ snd coordlists) / (fromIntegral n)
+    in
+      Cluster (cx, cy) (elements cluster) (threshold cluster)
+
+-- k-means clustering
+clusterizeMean points threshold maxTries =
+    let
+        clusterizeMean1 points clusters i =
+            let
+                newClusters = map recenter clusters
+            in
+                -- If recentered clusters are the same as on previous
+                -- or maximum step reached, give current clustering
+                if (Set.fromList newClusters == Set.fromList clusters) || (i == 0) then
+                   clusters
+                else
+                   clusterizeMean1 points newClusters (i - 1)
+    in
+        clusterizeMean1 points (clusterize points threshold) maxTries
