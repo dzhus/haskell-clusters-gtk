@@ -21,7 +21,6 @@ replaceIdx (x:xs) i e = x:(replaceIdx xs (i - 1) e)
 distance p1 p2 = sqrt ((fst p1 - fst p2) ^ 2 + (snd p1 - snd p2) ^ 2)
 
 addToCluster cluster point = cluster{elements = point:(elements cluster)}
-newCluster center threshold = Cluster center [] threshold
         
 -- Classify a point according to minimum distance rule provided a
 -- (possibly null) set of clusters.
@@ -36,7 +35,7 @@ classify point clusters threshold =
     in
       if clusterId == -1 then
       -- Add new cluster around this point
-          (addToCluster (newCluster point threshold) point):clusters
+          (Cluster point [point] threshold):clusters
       else
       -- Add point to existing cluster
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
@@ -49,3 +48,4 @@ clusterize points threshold =
         clusterize1 [] clusters = clusters
     in
       clusterize1 points []
+
