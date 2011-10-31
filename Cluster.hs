@@ -36,7 +36,19 @@ replaceIdx (x:xs) i e = x:(replaceIdx xs (i - 1) e)
 distance p1 p2 = sqrt ((fst p1 - fst p2) ^ 2 + (snd p1 - snd p2) ^ 2)
 
 addToCluster cluster point = cluster{elements = point:(elements cluster)}
-        
+
+-- Make a new cluster with the same elements and threshold but new
+-- center is the median point for elements
+recenter :: Cluster -> Cluster
+recenter cluster =
+    let
+        coordlists = unzip (elements cluster)
+        n = length (fst coordlists)
+        cx = (sum $ fst coordlists) / (fromIntegral n)
+        cy = (sum $ snd coordlists) / (fromIntegral n)
+    in
+      Cluster (cx, cy) (elements cluster) (threshold cluster)
+
 -- Classify a point according to minimum distance rule provided a
 -- (possibly null) set of clusters.
 classify :: Point -> [Cluster] -> Double -> [Cluster]
@@ -55,25 +67,14 @@ classify point clusters threshold =
       -- Add point to existing cluster
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
 
--- Minimum distance clustering
+-- Minimum distance clustering (possibly using a predefined list of known clusters)
 clusterize1 :: [Point] -> [Cluster] -> Double -> [Cluster]
 clusterize1 (p:points) clusters threshold = clusterize1 points (classify p clusters threshold) threshold
 clusterize1 [] clusters threshold = clusters
 
+-- Minimum distance clustering
 clusterize :: [Point] -> Double -> [Cluster]
 clusterize points threshold = clusterize1 points [] threshold
-
--- Make a new cluster with the same elements and threshold but new
--- center is the median point for elements
-recenter :: Cluster -> Cluster
-recenter cluster =
-    let
-        coordlists = unzip (elements cluster)
-        n = length (fst coordlists)
-        cx = (sum $ fst coordlists) / (fromIntegral n)
-        cy = (sum $ snd coordlists) / (fromIntegral n)
-    in
-      Cluster (cx, cy) (elements cluster) (threshold cluster)
 
 -- k-means clustering
 clusterizeMean points threshold maxTries =
