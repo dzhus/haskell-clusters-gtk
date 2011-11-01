@@ -68,12 +68,13 @@ classify point clusters threshold =
       -- Add point to existing cluster
         replaceIdx clusters clusterId (addToCluster (clusters !! clusterId) point)
 
--- Minimum distance clustering (possibly using a predefined list of known clusters)
+-- Single-pass minimum distance clustering (possibly using a
+-- predefined list of known clusters)
 clusterize1 :: [Point] -> [Cluster] -> Double -> [Cluster]
 clusterize1 (p:points) clusters threshold = clusterize1 points (classify p clusters threshold) threshold
 clusterize1 [] clusters threshold = clusters
 
--- Minimum distance clustering
+-- Single-pass minimum distance clustering
 clusterize :: [Point] -> Double -> [Cluster]
 clusterize points threshold = clusterize1 points [] threshold
 
