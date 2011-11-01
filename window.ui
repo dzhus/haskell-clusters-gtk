@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="icon_name">image-x-generic</property>
+  </object>
   <object class="GtkAdjustment" id="size">
     <property name="upper">1.7976931348623157e+308</property>
     <property name="value">5</property>
@@ -28,7 +33,6 @@
                 <child>
                   <object class="GtkButton" id="load">
                     <property name="label">gtk-open</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -45,7 +49,6 @@
                 <child>
                   <object class="GtkButton" id="save">
                     <property name="label">gtk-save</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -89,7 +92,6 @@
             <child>
               <object class="GtkButton" id="clear">
                 <property name="label">gtk-clear</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -134,7 +136,6 @@
                 <child>
                   <object class="GtkRadioButton" id="mode-mindist">
                     <property name="label" translatable="yes">min-ρ</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -152,7 +153,6 @@
                 <child>
                   <object class="GtkRadioButton" id="mode-kmeans">
                     <property name="label" translatable="yes">min-ρ с перецентровкой</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -219,16 +219,43 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="go">
-                <property name="label">gtk-execute</property>
-                <property name="use_action_appearance">False</property>
+              <object class="GtkHBox" id="box3">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
-                <property name="image_position">top</property>
-                <accelerator key="r" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                <property name="can_focus">False</property>
+                <property name="homogeneous">True</property>
+                <child>
+                  <object class="GtkButton" id="export">
+                    <property name="label" translatable="yes">Экспорт</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
+                    <property name="image">image1</property>
+                    <property name="image_position">top</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="go">
+                    <property name="label">gtk-execute</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
+                    <property name="use_stock">True</property>
+                    <property name="image_position">top</property>
+                    <accelerator key="r" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
