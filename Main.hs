@@ -105,9 +105,13 @@ replotPoints pointBuffer adjustment canvas fillBounds pickfv rbs = do
      points <- getPointsFromBuffer pointBuffer
      clusterSize <- adjustmentGetValue adjustment
      method <- getModeByRadioGroup rbs
-     bounds <- toggleButtonGetActive fillBounds
-     let clusters = (method points clusterSize) in
-       Main.updateCanvas (renderClusters clusters bounds) canvas pickfv
+     doBounds <- toggleButtonGetActive fillBounds
+     let 
+         clusters = (method points clusterSize)
+         ys = map snd points
+         yRange = (minimum ys, maximum ys)
+       in
+         Main.updateCanvas (renderClusters clusters doBounds yRange) canvas pickfv
      return True
 
 main :: IO ()
@@ -158,22 +162,26 @@ main =
 
      mainGUI
 
-renderClusters :: [Cluster.Cluster] -> Bool -> Renderable PickType
-renderClusters clusters withBounds =
+renderClusters :: [Cluster.Cluster] -> Bool -> (Double, Double) -> Renderable PickType
+renderClusters clusters withBounds yRange =
     layout1ToRenderable layout
   where
+    hiddenRange@(hMin, hMax) = (-10, 10)
+
     bounds = if withBounds
              then map (\[c1, c2] ->
                  let
                      (w1, w2, w3) = Perceptron.bisect c1 c2 0.5
-                     d1 = ((w2 * 10 - w3) / w1, -10)
-                     d2 = ((w2 * (-10) - w3) / w1, 10)
+                     yMin = min (fst hiddenRange) (fst yRange)
+                     yMax = max (snd hiddenRange) (snd yRange)
+                     d1 = ((w2 * (-yMin) - w3) / w1, yMin)
+                     d2 = ((w2 * (-yMax) - w3) / w1, yMax)
                  in
                    [d1, d2]) (filter ((2 ==) . length) (subsequences clusters))
              else []
 
     -- Hidden plot to ensure visibility
-    zero_plot = PlotHidden{plot_hidden_x_values_ = [-10, 10], plot_hidden_y_values_ = [-10, 10]}
+    zero_plot = PlotHidden{plot_hidden_x_values_ = [hMin, hMax], plot_hidden_y_values_ = [hMin, hMax]}
 
     -- Classification lines
     line_plot = plot_lines_values ^= bounds $ defaultPlotLines
