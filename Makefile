@@ -1,2 +1,2 @@
 all:
-	ghc --make main.hs
+	ghc --make -O Main.hs
