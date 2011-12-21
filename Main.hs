@@ -3,6 +3,7 @@ module Main where
 import Control.Monad
 import Data.Accessor
 import Data.IORef
+import Data.List
 import Data.Maybe
 import IO
 
@@ -17,6 +18,7 @@ import Data.Colour
 import Data.Colour.Names
 
 import Cluster
+import Perceptron
 
 type PickType = Layout1Pick Double Double
 
@@ -88,7 +90,7 @@ pickToPoint :: (Maybe PickType) -> (Maybe Cluster.Point)
 pickToPoint Nothing = Nothing
 pickToPoint (Just (L1P_PlotArea x y z)) = Just (x, y)
 
--- Local version of updateCanvas which update PickFn reference
+-- Local version of updateCanvas which updates PickFn reference
 updateCanvas :: Renderable a -> DrawingArea -> IORef (Maybe (PickFn a)) -> IO Bool
 updateCanvas chart canvas pickfv = do
      win <- widgetGetDrawWindow canvas
@@ -98,12 +100,14 @@ updateCanvas chart canvas pickfv = do
      writeIORef pickfv (Just pickf)
      return True
 
-replotPoints pointBuffer adjustment canvas pickfv rbs= do
+-- Redraw current clustering
+replotPoints pointBuffer adjustment canvas fillBounds pickfv rbs = do
      points <- getPointsFromBuffer pointBuffer
      clusterSize <- adjustmentGetValue adjustment
      method <- getModeByRadioGroup rbs
+     bounds <- toggleButtonGetActive fillBounds
      let clusters = (method points clusterSize) in
-       Main.updateCanvas (renderClusters clusters) canvas pickfv
+       Main.updateCanvas (renderClusters clusters bounds) canvas pickfv
      return True
 
 main :: IO ()
@@ -121,6 +125,7 @@ main =
      size <- builderGetObject builder castToAdjustment "size"
      modeMindist <- builderGetObject builder castToRadioButton "mode-mindist"
      modeButtons <- radioButtonGetGroup modeMindist
+     fillBounds <- builderGetObject builder castToCheckButton "bounds"
 
      -- Pick function reference
      pickfv <- newIORef Nothing
@@ -133,7 +138,7 @@ main =
 
      -- Event handlers
      let
-       replotActions = (replotPoints pointBuffer size canvas pickfv modeButtons)
+       replotActions = (replotPoints pointBuffer size canvas fillBounds pickfv modeButtons)
        in do
         onExpose canvas $ const replotActions
         onClicked button $ sequence_ [replotActions]
@@ -153,12 +158,26 @@ main =
 
      mainGUI
 
-renderClusters :: [Cluster.Cluster] -> Renderable PickType
-renderClusters clusters =
-  layout1ToRenderable layout
+renderClusters :: [Cluster.Cluster] -> Bool -> Renderable PickType
+renderClusters clusters withBounds =
+    layout1ToRenderable layout
   where
+    bounds = if withBounds
+             then map (\[c1, c2] ->
+                 let
+                     (w1, w2, w3) = Perceptron.bisect c1 c2 0.5
+                     d1 = ((w2 * 10 - w3) / w1, -10)
+                     d2 = ((w2 * (-10) - w3) / w1, 10)
+                 in
+                   [d1, d2]) (filter ((2 ==) . length) (subsequences clusters))
+             else []
+
     -- Hidden plot to ensure visibility
     zero_plot = PlotHidden{plot_hidden_x_values_ = [-10, 10], plot_hidden_y_values_ = [-10, 10]}
+
+    -- Classification lines
+    line_plot = plot_lines_values ^= bounds $ defaultPlotLines
+
     point_plots = map (\(c, color) ->
                          plot_points_style ^= filledCircles 5 (opaque color) $
                          plot_points_values ^= (Cluster.elements c) $
@@ -171,6 +190,7 @@ renderClusters clusters =
                                            length (Cluster.elements c)) | c <- clusters] $ 
                     defaultAreaSpots
     layout = layout1_plots ^= (Left (toPlot zero_plot)):
+                              (Left (toPlot line_plot)):
                               (Left (toPlot clusters_plot)):
                               (map (Left . toPlot) point_plots)
                               $ defaultLayout1
