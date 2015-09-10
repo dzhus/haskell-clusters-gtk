@@ -4,12 +4,9 @@ import Control.Monad
 import Control.Lens
 import Data.IORef
 import Data.List
-import Data.Maybe
-import System.IO
 
 import Graphics.UI.Gtk
 import qualified Graphics.UI.Gtk.Gdk.Events as GE
-import Graphics.Rendering.Cairo
 
 import Graphics.Rendering.Chart
 import Graphics.Rendering.Chart.Backend.Cairo
@@ -26,22 +23,26 @@ type PickType = LayoutPick Double Double Double
 
 type ClusteringMethod = [Cluster.Point] -> Double -> [Cluster]
 
+clusterColors :: [Colour Double]
 clusterColors = cycle [red, green, blue, orange, steelblue,
                        teal, darkorchid, darkkhaki,
                        darkred, darkturquoise, brown, lightsteelblue,
                        hotpink, yellowgreen]
 
+getLines :: FilePath -> IO [String]
 getLines = liftM lines . readFile
 
-readPoint s = read s::Cluster.Point
+readPoint :: String -> Cluster.Point
+readPoint = read
 
+coordSignificantDigits :: Int
 coordSignificantDigits = 3
 
 getPointsFromFile :: Maybe FilePath -> IO (Maybe [Cluster.Point])
 getPointsFromFile Nothing = do return Nothing
 getPointsFromFile (Just filename) =
-  do lines <- getLines filename
-     return (Just (map readPoint lines))
+  do lns <- getLines filename
+     return $ Just $ map readPoint lns
 
 getPointsFromBuffer :: TextBuffer -> IO [Cluster.Point]
 getPointsFromBuffer buf =
@@ -60,7 +61,7 @@ getModeByRadioGroup rbs =
        return (\ps t -> Cluster.clusterizeMean ps t 100)
        else
        return (\ps t -> Cluster.clusterize ps t)
-          
+
 clearBuffer :: TextBuffer -> IO ()
 clearBuffer buf =
   do textBufferSetText buf ""
@@ -109,7 +110,7 @@ replotPoints pointBuffer adjustment canvas fillBounds pickfv rbs = do
      clusterSize <- adjustmentGetValue adjustment
      method <- getModeByRadioGroup rbs
      doBounds <- toggleButtonGetActive fillBounds
-     let 
+     let
          clusters = (method points clusterSize)
          ys = map snd points
          yRange = (minimum ys, maximum ys)
@@ -118,7 +119,7 @@ replotPoints pointBuffer adjustment canvas fillBounds pickfv rbs = do
      return True
 
 main :: IO ()
-main = 
+main =
   do initGUI
      builder <- builderNew
      builderAddFromFile builder "window.ui"
@@ -136,7 +137,7 @@ main =
 
      -- Pick function reference
      pickfv <- newIORef Nothing
-     
+
      widgetShowAll window
 
      -- White canvas background
@@ -151,7 +152,7 @@ main =
         onClicked button $ sequence_ [replotActions]
 
         onClicked clearButton $ (clearBuffer pointBuffer)
-        
+
         onDestroy window mainQuit
 
         -- Add new point when clicking canvas
