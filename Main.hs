@@ -1,26 +1,28 @@
 module Main where
 
 import Control.Monad
-import Data.Accessor
+import Control.Lens
 import Data.IORef
 import Data.List
 import Data.Maybe
-import IO
+import System.IO
 
 import Graphics.UI.Gtk
 import qualified Graphics.UI.Gtk.Gdk.Events as GE
 import Graphics.Rendering.Cairo
 
 import Graphics.Rendering.Chart
-import Graphics.Rendering.Chart.Gtk
+import Graphics.Rendering.Chart.Backend.Cairo
 
 import Data.Colour
 import Data.Colour.Names
 
+import Data.Default.Class
+
 import Cluster
 import Perceptron
 
-type PickType = Layout1Pick Double Double
+type PickType = LayoutPick Double Double Double
 
 type ClusteringMethod = [Cluster.Point] -> Double -> [Cluster]
 
@@ -88,7 +90,7 @@ addPoint (Just p) buf =
 -- Format result of PickFn call to Cluster.Point
 pickToPoint :: (Maybe PickType) -> (Maybe Cluster.Point)
 pickToPoint Nothing = Nothing
-pickToPoint (Just (L1P_PlotArea x y z)) = Just (x, y)
+pickToPoint (Just (LayoutPick_PlotArea x y z)) = Just (x, y)
 
 -- Local version of updateCanvas which updates PickFn reference
 updateCanvas :: Renderable a -> DrawingArea -> IORef (Maybe (PickFn a)) -> IO Bool
@@ -96,7 +98,8 @@ updateCanvas chart canvas pickfv = do
      win <- widgetGetDrawWindow canvas
      (width, height) <- widgetGetSize canvas
      let sz = (fromIntegral width,fromIntegral height)
-     pickf <- renderWithDrawable win $ runCRender (render chart sz) bitmapEnv
+         env = defaultEnv bitmapAlignmentFns
+     pickf <- renderWithDrawable win $ runBackend env (render chart sz)
      writeIORef pickfv (Just pickf)
      return True
 
@@ -164,7 +167,7 @@ main =
 
 renderClusters :: [Cluster.Cluster] -> Bool -> (Double, Double) -> Renderable PickType
 renderClusters clusters withBounds yRange =
-    layout1ToRenderable layout
+    layoutToRenderable layout
   where
     hiddenRange@(hMin, hMax) = (-10, 10)
 
@@ -181,24 +184,26 @@ renderClusters clusters withBounds yRange =
              else []
 
     -- Hidden plot to ensure visibility
-    zero_plot = PlotHidden{plot_hidden_x_values_ = [hMin, hMax], plot_hidden_y_values_ = [hMin, hMax]}
+    -- TODO Use lens
+    zero_plot = PlotHidden{_plot_hidden_x_values = [hMin, hMax], _plot_hidden_y_values = [hMin, hMax]}
 
     -- Classification lines
-    line_plot = plot_lines_values ^= bounds $ defaultPlotLines
+    line_plot = plot_lines_values .~ bounds $ (def :: PlotLines Double Double)
 
     point_plots = map (\(c, color) ->
-                         plot_points_style ^= filledCircles 5 (opaque color) $
-                         plot_points_values ^= (Cluster.elements c) $
-                         defaultPlotPoints)
+                         plot_points_style .~ filledCircles 5 (opaque color) $
+                         plot_points_values .~ (Cluster.elements c) $
+                         def)
                       (zip clusters clusterColors)
-    clusters_plot = area_spots_fillcolour ^= (withOpacity blue 0.5) $
-                    area_spots_max_radius ^= 5^2 $
-                    area_spots_values ^= [(fst (Cluster.center c),
+    clusters_plot = area_spots_fillcolour .~ blue $
+                    area_spots_opacity .~ 0.5 $
+                    area_spots_max_radius .~ 5^2 $
+                    area_spots_values .~ [(fst (Cluster.center c),
                                            snd (Cluster.center c),
-                                           length (Cluster.elements c)) | c <- clusters] $ 
-                    defaultAreaSpots
-    layout = layout1_plots ^= (Left (toPlot zero_plot)):
-                              (Left (toPlot line_plot)):
-                              (Left (toPlot clusters_plot)):
-                              (map (Left . toPlot) point_plots)
-                              $ defaultLayout1
+                                           length (Cluster.elements c)) | c <- clusters] $
+                    def
+    layout = layout_plots .~ (toPlot zero_plot):
+                             (toPlot line_plot):
+                             (toPlot clusters_plot):
+                             (map toPlot point_plots) $
+                             def
